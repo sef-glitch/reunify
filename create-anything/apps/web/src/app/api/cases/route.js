@@ -71,7 +71,7 @@ export async function POST(request) {
 
         await txn`
           INSERT INTO tasks (case_id, title, priority, status, due_date)
-          VALUES (${createdCase.id}, ${task.title}, 'Medium', 'Not Started', ${formattedDate})
+          VALUES (${createdCase.id}, ${task.title}, 'Medium', 'not_started', ${formattedDate})
         `;
 
         await txn`

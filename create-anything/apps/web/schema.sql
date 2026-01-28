@@ -83,11 +83,12 @@ CREATE TABLE IF NOT EXISTS tasks (
     description TEXT,
     due_date DATE,
     priority TEXT DEFAULT 'Medium',
-    status TEXT DEFAULT 'Not Started',
+    status TEXT DEFAULT 'not_started',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_case_id ON tasks(case_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
 
 -- Case Events (hearings, deadlines, etc.)
 CREATE TABLE IF NOT EXISTS case_events (
@@ -100,6 +101,7 @@ CREATE TABLE IF NOT EXISTS case_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_case_events_case_id ON case_events(case_id);
+CREATE INDEX IF NOT EXISTS idx_case_events_event_date ON case_events(event_date);
 
 -- Plan Items (service plan requirements)
 CREATE TABLE IF NOT EXISTS plan_items (
@@ -107,7 +109,7 @@ CREATE TABLE IF NOT EXISTS plan_items (
     case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
     title TEXT,
     description TEXT,
-    status TEXT DEFAULT 'Not Started',
+    status TEXT DEFAULT 'not_started',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -125,6 +127,7 @@ CREATE TABLE IF NOT EXISTS uploads (
 );
 
 CREATE INDEX IF NOT EXISTS idx_uploads_case_id ON uploads(case_id);
+CREATE INDEX IF NOT EXISTS idx_uploads_created_at ON uploads(created_at);
 
 -- Chats (AI chat sessions)
 CREATE TABLE IF NOT EXISTS chats (
@@ -136,6 +139,7 @@ CREATE TABLE IF NOT EXISTS chats (
 
 CREATE INDEX IF NOT EXISTS idx_chats_user_id ON chats(user_id);
 CREATE INDEX IF NOT EXISTS idx_chats_case_id ON chats(case_id);
+CREATE INDEX IF NOT EXISTS idx_chats_user_case ON chats(user_id, case_id);
 
 -- Chat Messages
 CREATE TABLE IF NOT EXISTS chat_messages (
@@ -163,6 +167,7 @@ CREATE TABLE IF NOT EXISTS resources (
 
 CREATE INDEX IF NOT EXISTS idx_resources_state ON resources(state);
 CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category);
+CREATE INDEX IF NOT EXISTS idx_resources_state_category ON resources(state, category);
 
 -- Saved Resources (user bookmarks)
 CREATE TABLE IF NOT EXISTS saved_resources (

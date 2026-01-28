@@ -26,7 +26,7 @@ export default function DashboardPage() {
 
   const dueSoonTasks = Array.isArray(tasks)
     ? tasks.filter((t) => {
-        if (t.status === "Completed" || !t.due_date) return false;
+        if (t.status === "completed" || !t.due_date) return false;
         const due = new Date(t.due_date);
         const now = new Date();
         const nextWeek = new Date();

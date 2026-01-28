@@ -50,7 +50,7 @@ export async function POST(request) {
 
     const [newTask] = await sql`
       INSERT INTO tasks (case_id, title, description, due_date, priority, status)
-      VALUES (${case_id}, ${title}, ${description}, ${due_date}, ${priority || "Medium"}, ${status || "Not Started"})
+      VALUES (${case_id}, ${title}, ${description}, ${due_date}, ${priority || "Medium"}, ${status || "not_started"})
       RETURNING *
     `;
 

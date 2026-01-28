@@ -309,7 +309,7 @@ function AddTaskModal({ onClose, onSubmit, isLoading, error }) {
     description: "",
     due_date: "",
     priority: "Medium",
-    status: "Not Started",
+    status: "not_started",
   });
 
   const handleSubmit = (e) => {

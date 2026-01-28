@@ -39,7 +39,7 @@ export async function createTask(taskData) {
       description: taskData.description ?? null,
       due_date: taskData.due_date ?? null,
       priority: taskData.priority ?? "Medium",
-      status: taskData.status ?? "Not Started",
+      status: taskData.status ?? "not_started",
     }),
   });
 

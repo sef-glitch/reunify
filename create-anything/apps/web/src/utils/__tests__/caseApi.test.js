@@ -21,7 +21,7 @@ describe('caseApi', () => {
       description: 'Fill out form A',
       due_date: '2024-12-31',
       priority: 'High',
-      status: 'Not Started',
+      status: 'not_started',
     };
 
     describe('validation', () => {
@@ -74,14 +74,14 @@ describe('caseApi', () => {
             description: 'Fill out form A',
             due_date: '2024-12-31',
             priority: 'High',
-            status: 'Not Started',
+            status: 'not_started',
           }),
         });
       });
 
       it('creates task with minimal fields and applies defaults', async () => {
         const minimalTask = { case_id: 'case-123', title: 'Test task' };
-        const mockResponse = { id: 1, ...minimalTask, priority: 'Medium', status: 'Not Started' };
+        const mockResponse = { id: 1, ...minimalTask, priority: 'Medium', status: 'not_started' };
         mockFetch.mockResolvedValueOnce({
           ok: true,
           json: () => Promise.resolve(mockResponse),
@@ -98,7 +98,7 @@ describe('caseApi', () => {
             description: null,
             due_date: null,
             priority: 'Medium',
-            status: 'Not Started',
+            status: 'not_started',
           }),
         });
       });
@@ -317,7 +317,7 @@ describe('caseApi', () => {
     describe('successful fetch', () => {
       it('fetches tasks for a case', async () => {
         const mockTasks = [
-          { id: 1, title: 'Task 1', status: 'Not Started' },
+          { id: 1, title: 'Task 1', status: 'not_started' },
           { id: 2, title: 'Task 2', status: 'completed' },
         ];
         mockFetch.mockResolvedValueOnce({
