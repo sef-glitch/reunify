@@ -231,10 +231,31 @@ export function safeLog(message, data = {}) {
   console.log(message, safeData);
 }
 
+/**
+ * S3 environment variables (for file storage)
+ */
+export const env = {
+  S3_BUCKET: process.env.S3_BUCKET || "",
+  S3_REGION: process.env.S3_REGION || "auto",
+  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID || "",
+  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY || "",
+  S3_ENDPOINT: process.env.S3_ENDPOINT || "",
+  S3_PUBLIC_BASE_URL: process.env.S3_PUBLIC_BASE_URL || "",
+};
+
+/**
+ * Check if S3 storage is configured
+ */
+export function isS3Configured() {
+  return !!(env.S3_BUCKET && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY);
+}
+
 export default {
   validateEnv,
   getRequiredEnv,
   getEnv,
   isProduction,
   safeLog,
+  env,
+  isS3Configured,
 };

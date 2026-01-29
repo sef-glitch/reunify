@@ -152,6 +152,85 @@ Environment mode indicator.
 
 ---
 
+### File Storage (S3-Compatible)
+
+These variables enable secure document uploads using S3-compatible storage (AWS S3, Cloudflare R2, MinIO, DigitalOcean Spaces, etc.). If not configured, the app falls back to Create.xyz platform uploads.
+
+#### `S3_ENDPOINT`
+**Optional** | **Secret**
+
+The S3-compatible endpoint URL.
+
+**AWS S3:**
+```
+S3_ENDPOINT=https://s3.us-east-1.amazonaws.com
+```
+
+**Cloudflare R2:**
+```
+S3_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
+```
+
+---
+
+#### `S3_ACCESS_KEY_ID`
+**Optional** | **Secret**
+
+Access key ID for S3 authentication.
+
+---
+
+#### `S3_SECRET_ACCESS_KEY`
+**Optional** | **Secret**
+
+Secret access key for S3 authentication.
+
+---
+
+#### `S3_BUCKET`
+**Optional**
+
+Name of the S3 bucket for storing uploads.
+
+**Example:**
+```
+S3_BUCKET=reunify-documents
+```
+
+---
+
+#### `S3_REGION`
+**Optional**
+
+AWS region or "auto" for R2.
+
+**Default:** `auto`
+
+**Examples:**
+- AWS: `us-east-1`, `eu-west-1`
+- R2: `auto`
+
+---
+
+#### `S3_PUBLIC_BASE_URL`
+**Optional**
+
+Public base URL where files are accessible. Use this for CDN or custom domain setups.
+
+**Examples:**
+```
+# Cloudflare R2 with public bucket
+S3_PUBLIC_BASE_URL=https://pub-xxx.r2.dev
+
+# AWS S3 direct
+S3_PUBLIC_BASE_URL=https://my-bucket.s3.us-east-1.amazonaws.com
+
+# Custom CDN domain
+S3_PUBLIC_BASE_URL=https://cdn.yourdomain.com
+```
+
+---
+
 ## Mobile App (`apps/mobile/.env`)
 
 ### Required Variables
@@ -290,6 +369,8 @@ Add these patterns to `.gitignore`:
 These variables contain sensitive data and must never be logged or exposed:
 - `DATABASE_URL`
 - `AUTH_SECRET`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
 - `EXPO_PUBLIC_UPLOADCARE_PUBLIC_KEY` (contains account identifier)
 - `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`
 - `EXPO_PUBLIC_CREATE_TEMP_API_KEY`
