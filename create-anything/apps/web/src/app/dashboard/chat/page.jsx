@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, AlertCircle } from "lucide-react";
+import { Send, Loader2, Bot, User, AlertCircle, Settings } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useHandleStreamResponse from "@/utils/useHandleStreamResponse";
 
@@ -10,6 +10,15 @@ export default function ChatPage() {
   const [aiError, setAiError] = useState(null);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
+
+  // Check if AI is configured
+  const { data: aiStatus } = useQuery({
+    queryKey: ["ai-status"],
+    queryFn: () => fetch("/api/chat/completions").then((res) => res.json()),
+    staleTime: 60000,
+  });
+
+  const aiConfigured = aiStatus?.configured ?? true;
 
   const { data: history, isLoading } = useQuery({
     queryKey: ["chat-history"],
@@ -73,7 +82,7 @@ Important rules:
 
     try {
       setAiError(null);
-      const response = await fetch("/integrations/chat-gpt/conversationgpt4", {
+      const response = await fetch("/api/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -83,17 +92,19 @@ Important rules:
       });
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 503 || errorData.error === "AI_NOT_CONFIGURED") {
           throw new Error("AI_NOT_CONFIGURED");
         }
-        throw new Error("AI request failed");
+        throw new Error(errorData.message || "AI request failed");
       }
 
       await handleStreamResponse(response);
     } catch (error) {
       console.error("Chat error:", error);
-      if (error.message === "AI_NOT_CONFIGURED" || error.message?.includes("fetch")) {
-        setAiError("AI assistant is not configured. Please check your integration settings.");
+      if (error.message === "AI_NOT_CONFIGURED") {
+        setAiError("AI assistant is not configured. Add OPENAI_API_KEY to your environment.");
+        queryClient.invalidateQueries({ queryKey: ["ai-status"] });
       } else {
         setAiError("Unable to get a response. Please try again.");
       }
@@ -122,6 +133,19 @@ Important rules:
         {isLoading ? (
           <div className="text-center text-gray-400 text-sm">
             Loading chat...
+          </div>
+        ) : !aiConfigured ? (
+          <div className="text-center py-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
+              <Settings size={32} className="text-amber-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">AI Assistant Not Configured</h3>
+            <p className="text-gray-500 text-sm max-w-md mx-auto mb-4">
+              To enable the Reunify Guide, add your OpenAI API key to the environment configuration.
+            </p>
+            <code className="text-xs bg-gray-100 px-3 py-1.5 rounded text-gray-600">
+              OPENAI_API_KEY=sk-...
+            </code>
           </div>
         ) : (!history || history.length === 0) && !streamingMessage ? (
           <div className="text-center text-gray-400 text-sm py-10">
@@ -177,12 +201,13 @@ Important rules:
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your question..."
-            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+            placeholder={aiConfigured ? "Type your question..." : "AI assistant not configured"}
+            disabled={!aiConfigured}
+            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={!input.trim() || !!streamingMessage}
+            disabled={!aiConfigured || !input.trim() || !!streamingMessage}
             className="p-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {streamingMessage ? (

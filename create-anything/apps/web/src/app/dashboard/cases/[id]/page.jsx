@@ -59,7 +59,10 @@ export default function CaseDetailPage({ params }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(taskData),
       });
-      if (!res.ok) throw new Error("Failed to update task");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update task. Please try again.");
+      }
       return res.json();
     },
     onSuccess: () => {

@@ -241,6 +241,7 @@ export const env = {
   S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY || "",
   S3_ENDPOINT: process.env.S3_ENDPOINT || "",
   S3_PUBLIC_BASE_URL: process.env.S3_PUBLIC_BASE_URL || "",
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
 };
 
 /**
@@ -248,6 +249,13 @@ export const env = {
  */
 export function isS3Configured() {
   return !!(env.S3_BUCKET && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY);
+}
+
+/**
+ * Check if AI chat is configured
+ */
+export function isAIConfigured() {
+  return !!env.OPENAI_API_KEY;
 }
 
 export default {
@@ -258,4 +266,5 @@ export default {
   safeLog,
   env,
   isS3Configured,
+  isAIConfigured,
 };
