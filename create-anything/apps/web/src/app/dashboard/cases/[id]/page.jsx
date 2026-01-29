@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
+import { useParams } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, CheckSquare, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { createTask, createEvent } from "@/utils/caseApi";
 
-export default function CaseDetailPage({ params }) {
-  const { id } = params;
+export default function CaseDetailPage() {
+  const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
   const queryClient = useQueryClient();
 

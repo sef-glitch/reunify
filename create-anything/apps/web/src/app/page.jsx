@@ -35,7 +35,7 @@ export default function HomePage() {
               How it works
             </a>
             <a
-              href="#resources"
+              href="/dashboard/resources"
               className="text-sm font-medium text-gray-600 hover:text-black"
             >
               Resources

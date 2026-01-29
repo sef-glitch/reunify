@@ -61,7 +61,7 @@ export async function POST(request) {
 
     return Response.json(newTask, { status: 201 });
   } catch (error) {
-    console.error(error);
+    console.error("Error creating task:", error);
     return Response.json({ error: "Failed to create task" }, { status: 500 });
   }
 }
@@ -97,7 +97,7 @@ export async function PUT(request) {
 
     return Response.json(updatedTask);
   } catch (error) {
-    console.error(error);
+    console.error("Error updating task:", error);
     return Response.json({ error: "Failed to update task" }, { status: 500 });
   }
 }
