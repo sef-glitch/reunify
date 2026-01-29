@@ -10,10 +10,23 @@ import {
 } from "lucide-react";
 import useUser from "@/utils/useUser";
 
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+  "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+  "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+  "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+  "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma",
+  "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+  "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+  "West Virginia", "Wisconsin", "Wyoming",
+];
+
 export default function IntakePage() {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(true);
+  const [errors, setErrors] = useState({});
   const { data: user, loading: userLoading } = useUser();
 
   const createCase = useMutation({
@@ -91,6 +104,7 @@ export default function IntakePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrors({});
 
     // Check if user is authenticated
     if (!user) {
@@ -101,9 +115,32 @@ export default function IntakePage() {
       return;
     }
 
+    const formData = new FormData(e.target);
+
+    // Validate required fields
+    const title = formData.get("title")?.trim();
+    const state = formData.get("state");
+    const stage = formData.get("stage");
+
+    const newErrors = {};
+    if (!title) {
+      newErrors.title = "Case title is required";
+    }
+    if (!state) {
+      newErrors.state = "State is required";
+    }
+    if (!stage) {
+      newErrors.stage = "Current stage is required";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
     setLoading(true);
 
-    const formData = new FormData(e.target);
     const risks = [];
 
     // Map checkboxes to risks array
@@ -119,10 +156,10 @@ export default function IntakePage() {
     const courtDate = formData.get("next_court_date");
 
     const data = {
-      state: "Michigan",
-      stage: formData.get("stage"),
-      risks: risks,
-      next_court_date: courtDate || null,
+      title,
+      state,
+      case_type: stage,
+      next_hearing_date: courtDate || null,
       notes: formData.get("notes") || "",
     };
 
@@ -273,21 +310,53 @@ export default function IntakePage() {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
         <form className="space-y-8" onSubmit={handleSubmit}>
-          {/* Section 1: Case Status */}
+          {/* Section 1: Case Details */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b border-gray-100 pb-2">
-              Case Status
+              Case Details
             </h3>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Case Title *
+              </label>
+              <input
+                type="text"
+                name="title"
+                placeholder="e.g., Smith Family Reunification"
+                className={`w-full px-4 py-2.5 rounded-xl border ${errors.title ? "border-red-400 bg-red-50" : "border-gray-200"} focus:ring-2 focus:ring-[#8B70F6] focus:outline-none`}
+              />
+              {errors.title && (
+                <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+              )}
+            </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Current Stage
+                  State *
+                </label>
+                <select
+                  name="state"
+                  className={`w-full px-4 py-2.5 rounded-xl border ${errors.state ? "border-red-400 bg-red-50" : "border-gray-200"} focus:ring-2 focus:ring-[#8B70F6] focus:outline-none bg-white`}
+                >
+                  <option value="">Select state...</option>
+                  {US_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                {errors.state && (
+                  <p className="mt-1 text-sm text-red-600">{errors.state}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Stage *
                 </label>
                 <select
                   name="stage"
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#8B70F6] focus:outline-none bg-white"
+                  className={`w-full px-4 py-2.5 rounded-xl border ${errors.stage ? "border-red-400 bg-red-50" : "border-gray-200"} focus:ring-2 focus:ring-[#8B70F6] focus:outline-none bg-white`}
                 >
                   <option value="">Select stage...</option>
                   <option value="Pre-Trial">Pre-Trial</option>
@@ -297,18 +366,21 @@ export default function IntakePage() {
                   <option value="Permanency">Permanency Planning</option>
                   <option value="Termination">Termination (TPR)</option>
                 </select>
+                {errors.stage && (
+                  <p className="mt-1 text-sm text-red-600">{errors.stage}</p>
+                )}
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Next Court Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  name="next_court_date"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#8B70F6] focus:outline-none"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Next Court Date (Optional)
+              </label>
+              <input
+                type="date"
+                name="next_court_date"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#8B70F6] focus:outline-none"
+              />
             </div>
           </div>
 

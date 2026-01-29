@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUpload } from "@/utils/useUpload";
+import { usePresignedUpload } from "@/utils/usePresignedUpload";
 import { filterVaultUploads } from "@/utils/vaultFilter";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -48,6 +49,9 @@ export default function DocumentVaultPage() {
 
   const fileInputRef = useRef(null);
   const [uploadFile, { loading: uploadLoading }] = useUpload();
+  const [presignedUpload, { loading: presignedLoading }] = usePresignedUpload();
+
+  const isUploading = uploadLoading || presignedLoading;
 
   // 1. Fetch User's Case
   const { data: cases, isLoading: casesLoading } = useQuery({
@@ -131,14 +135,39 @@ export default function DocumentVaultPage() {
   const handleConfirmUpload = async () => {
     if (!selectedFile || !currentCase) return;
 
+    // Map tag format for API (spaces to underscores)
+    const apiTag = selectedTag.replace(/\s+/g, "_");
+
     try {
+      // Try presigned upload first (S3-compatible)
+      const presignedResult = await presignedUpload({
+        file: selectedFile,
+        caseId: currentCase.id,
+        tag: apiTag,
+      });
+
+      if (!presignedResult.error) {
+        // Presigned upload succeeded
+        saveUpload.mutate({
+          case_id: currentCase.id,
+          file_url: presignedResult.url,
+          tag: apiTag,
+          plan_item_id: planItemId ? parseInt(planItemId) : null,
+          mime_type: presignedResult.mimeType,
+          file_size: presignedResult.size,
+        });
+        return;
+      }
+
+      // Presigned not available, fall back to platform upload
+      console.log("Presigned upload not available, using platform upload");
       const { url, error } = await uploadFile({ file: selectedFile });
       if (error) throw new Error(error);
 
       saveUpload.mutate({
         case_id: currentCase.id,
         file_url: url,
-        tag: selectedTag,
+        tag: apiTag,
         plan_item_id: planItemId ? parseInt(planItemId) : null,
       });
     } catch (err) {
@@ -202,14 +231,14 @@ export default function DocumentVaultPage() {
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploadLoading || saveUpload.isPending}
+            disabled={isUploading || saveUpload.isPending}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm disabled:opacity-70 ${
               planItemId
                 ? "bg-[#8B70F6] hover:bg-[#7859F4] text-white ring-4 ring-[#8B70F6]/20"
                 : "bg-[#121212] text-white hover:bg-black"
             }`}
           >
-            {uploadLoading || saveUpload.isPending ? (
+            {isUploading || saveUpload.isPending ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
               <Upload size={20} />
@@ -447,10 +476,10 @@ export default function DocumentVaultPage() {
               </button>
               <button
                 onClick={handleConfirmUpload}
-                disabled={uploadLoading || saveUpload.isPending}
+                disabled={isUploading || saveUpload.isPending}
                 className="flex-1 px-4 py-3 bg-[#121212] text-white font-medium rounded-xl hover:bg-black transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
               >
-                {(uploadLoading || saveUpload.isPending) && (
+                {(isUploading || saveUpload.isPending) && (
                   <Loader2 className="animate-spin" size={18} />
                 )}
                 Confirm Upload

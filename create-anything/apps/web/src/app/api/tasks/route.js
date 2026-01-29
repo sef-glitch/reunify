@@ -40,7 +40,7 @@ export async function POST(request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { case_id, title, description, due_date, priority, status } = body;
+  const { case_id, title, description, notes, due_date, priority, status } = body;
 
   try {
     const [caseCheck] =
@@ -49,8 +49,8 @@ export async function POST(request) {
       return Response.json({ error: "Case not found" }, { status: 404 });
 
     const [newTask] = await sql`
-      INSERT INTO tasks (case_id, title, description, due_date, priority, status)
-      VALUES (${case_id}, ${title}, ${description}, ${due_date}, ${priority || "Medium"}, ${status || "not_started"})
+      INSERT INTO tasks (case_id, title, description, notes, due_date, priority, status)
+      VALUES (${case_id}, ${title}, ${description}, ${notes || null}, ${due_date}, ${priority || "Medium"}, ${status || "not_started"})
       RETURNING *
     `;
 
@@ -72,7 +72,7 @@ export async function PUT(request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { id, title, description, due_date, priority, status } = body;
+  const { id, title, description, notes, due_date, priority, status } = body;
 
   try {
     const [task] = await sql`
@@ -85,7 +85,7 @@ export async function PUT(request) {
 
     const [updatedTask] = await sql`
       UPDATE tasks
-      SET title = ${title}, description = ${description}, due_date = ${due_date}, priority = ${priority}, status = ${status}
+      SET title = ${title}, description = ${description}, notes = ${notes}, due_date = ${due_date}, priority = ${priority}, status = ${status}
       WHERE id = ${id}
       RETURNING *
     `;

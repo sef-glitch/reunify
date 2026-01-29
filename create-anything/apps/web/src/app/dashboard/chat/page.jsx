@@ -1,12 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User } from "lucide-react";
+import { Send, Loader2, Bot, User, AlertCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useHandleStreamResponse from "@/utils/useHandleStreamResponse";
 
 export default function ChatPage() {
   const [input, setInput] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");
+  const [aiError, setAiError] = useState(null);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -54,7 +55,14 @@ export default function ChatPage() {
 
     const systemPrompt = {
       role: "system",
-      content: `You are a helpful assistant for Reunify. Rules: 1. Not a lawyer. 2. Be supportive and practical. 3. If asked for legal advice, disclaim and refer to attorney.`,
+      content: `You are "Reunify Guide", a supportive assistant for families navigating CPS and family court reunification cases.
+
+Important rules:
+1. You are NOT a lawyer and cannot provide legal advice. Always recommend consulting with an attorney for legal questions.
+2. Be warm, supportive, and practical in your responses.
+3. Focus on organization, planning, and emotional support.
+4. If asked for specific legal advice, clearly disclaim: "I'm not able to provide legal advice. Please consult with a family law attorney for guidance on legal matters."
+5. Help users understand general processes, organize their documentation, and prepare for meetings.`,
     };
 
     const messages = [
@@ -64,6 +72,7 @@ export default function ChatPage() {
     ];
 
     try {
+      setAiError(null);
       const response = await fetch("/integrations/chat-gpt/conversationgpt4", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,11 +82,21 @@ export default function ChatPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("AI request failed");
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("AI_NOT_CONFIGURED");
+        }
+        throw new Error("AI request failed");
+      }
 
       await handleStreamResponse(response);
     } catch (error) {
-      console.error(error);
+      console.error("Chat error:", error);
+      if (error.message === "AI_NOT_CONFIGURED" || error.message?.includes("fetch")) {
+        setAiError("AI assistant is not configured. Please check your integration settings.");
+      } else {
+        setAiError("Unable to get a response. Please try again.");
+      }
     }
   };
 
@@ -92,9 +111,9 @@ export default function ChatPage() {
           <Bot size={20} />
         </div>
         <div>
-          <h2 className="font-semibold text-gray-900">Reunify Assistant</h2>
+          <h2 className="font-semibold text-gray-900">Reunify Guide</h2>
           <p className="text-xs text-gray-500">
-            Not legal advice • Automated support
+            Informational support only • Not legal advice
           </p>
         </div>
       </div>
@@ -134,6 +153,17 @@ export default function ChatPage() {
               <div className="flex justify-start">
                 <div className="max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed bg-gray-100 text-gray-800 rounded-bl-none">
                   {streamingMessage}
+                </div>
+              </div>
+            )}
+            {aiError && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed bg-amber-50 border border-amber-200 text-amber-800 rounded-bl-none flex items-start gap-2">
+                  <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">AI is not available</p>
+                    <p className="text-xs mt-1">{aiError}</p>
+                  </div>
                 </div>
               </div>
             )}

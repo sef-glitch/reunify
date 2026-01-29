@@ -61,7 +61,7 @@ export default function HomePage() {
         <div className="max-w-[1000px] mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F0EEFF] text-[#8B70F6] text-xs font-semibold mb-8 border border-[#E0D9FF]">
             <span className="w-2 h-2 rounded-full bg-[#8B70F6]"></span>
-            For Michigan Families
+            For Families Across the U.S.
           </div>
 
           <h1
@@ -84,12 +84,12 @@ export default function HomePage() {
                 Start Your Action Plan
               </button>
             </a>
-            <button className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-white border border-gray-200 font-semibold text-lg hover:border-gray-300 transition-all text-[#121212]">
+            <a href="#how-it-works" className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-white border border-gray-200 font-semibold text-lg hover:border-gray-300 transition-all text-[#121212]">
               <div className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center group-hover:border-gray-400">
                 <Play size={10} className="ml-0.5 opacity-60" />
               </div>
               How it works
-            </button>
+            </a>
           </div>
 
           <div className="mt-12 inline-block bg-amber-50 border border-amber-100 px-4 py-2 rounded-lg">
@@ -220,7 +220,7 @@ export default function HomePage() {
             </span>
           </div>
           <div className="text-gray-400 text-sm">
-            &copy; 2026 Reunify. Built for Michigan families.
+            &copy; 2026 Reunify. Built for families across the U.S.
           </div>
         </div>
       </footer>

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, MapPin, ExternalLink, BookOpen } from "lucide-react";
 
 const STATES = [
+  "National",
   "Alabama",
   "Alaska",
   "Arizona",
@@ -70,7 +71,7 @@ const CATEGORIES = [
 ];
 
 export default function ResourcesPage() {
-  const [selectedState, setSelectedState] = useState("Michigan");
+  const [selectedState, setSelectedState] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
 
   const { data: resources, isLoading } = useQuery({

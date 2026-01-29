@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
+    notes TEXT,
     due_date DATE,
     priority TEXT DEFAULT 'Medium',
     status TEXT DEFAULT 'not_started',
