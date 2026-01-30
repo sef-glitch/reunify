@@ -43,7 +43,7 @@ export default function TasksPage() {
     queryFn: async () => fetchJSON("/api/tasks"),
   });
 
-  const tasks = Array.isArray(data) ? data : data?.tasks ?? [];
+  const tasks = data ?? [];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -58,12 +58,10 @@ export default function TasksPage() {
         return hay.includes(q);
       })
       .sort((a, b) => {
-        const ad = a.due_date ?? a.due_at ?? null;
-        const bd = b.due_date ?? b.due_at ?? null;
-        if (!ad && !bd) return 0;
-        if (!ad) return 1;
-        if (!bd) return -1;
-        return new Date(ad).getTime() - new Date(bd).getTime();
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
       });
   }, [tasks, statusFilter, search]);
 
@@ -151,7 +149,7 @@ export default function TasksPage() {
               <div className="col-span-5 font-medium">{t.title ?? "(untitled)"}</div>
               <div className="col-span-2 capitalize">{String(t.status || "").replaceAll("_", " ")}</div>
               <div className="col-span-2">{t.priority ?? "—"}</div>
-              <div className="col-span-3">{formatDue(t.due_date ?? t.due_at)}</div>
+              <div className="col-span-3">{formatDue(t.due_date)}</div>
             </button>
           ))
         )}

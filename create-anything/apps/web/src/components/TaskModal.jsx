@@ -1,6 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
-import { X, Loader2, Trash2 } from "lucide-react";
+import React, { useMemo, useState } from "react";
+
+function formatDateInput(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  // YYYY-MM-DD
+  return d.toISOString().slice(0, 10);
+}
 
 export default function TaskModal({
   open,
@@ -12,194 +19,164 @@ export default function TaskModal({
   deleting = false,
   error = "",
 }) {
-  const [formData, setFormData] = useState({
-    id: "",
-    title: "",
-    description: "",
-    notes: "",
-    due_date: "",
-    priority: "Medium",
-    status: "not_started",
-  });
-
-  useEffect(() => {
-    if (task) {
-      setFormData({
-        id: task.id || "",
-        title: task.title || "",
-        description: task.description || "",
-        notes: task.notes || "",
-        due_date: task.due_date ? task.due_date.split("T")[0] : "",
-        priority: task.priority || "Medium",
-        status: task.status || "not_started",
-      });
-    }
+  const initial = useMemo(() => {
+    if (!task) return null;
+    return {
+      title: task.title ?? "",
+      description: task.description ?? "",
+      due_date: formatDateInput(task.due_date),
+      priority: task.priority ?? "Medium",
+      status: task.status ?? "not_started",
+      notes: task.notes ?? "",
+    };
   }, [task]);
 
-  if (!open) return null;
+  const [form, setForm] = useState(initial);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.title.trim()) return;
-    onSave({
-      ...formData,
-      due_date: formData.due_date || null,
-    });
-  };
+  React.useEffect(() => {
+    setForm(initial);
+  }, [initial]);
 
-  const handleDelete = () => {
-    if (window.confirm("Delete this task? This cannot be undone.")) {
-      onDelete(task);
-    }
+  if (!open || !task) return null;
+
+  const update = (k, v) => setForm((prev) => ({ ...(prev ?? {}), [k]: v }));
+
+  const handleSave = () => {
+    if (!form) return;
+    // normalize status casing to your backend expectation
+    const status = String(form.status || "").toLowerCase();
+    const payload = {
+      id: task.id,
+      title: form.title?.trim(),
+      description: form.description?.trim() || null,
+      due_date: form.due_date || null,
+      priority: form.priority || "Medium",
+      status,
+      notes: form.notes ?? "",
+      case_id: task.case_id, // keep context if backend requires it
+    };
+    onSave(payload);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold text-gray-900">Edit Task</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-xl rounded-xl bg-white shadow-lg">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="font-semibold">Task Details</div>
           <button
+            className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1"
+            disabled={saving || deleting}
+            aria-label="Close"
           >
-            <X size={24} />
+            ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="space-y-4 p-4">
+          {error ? (
+            <div className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
               {error}
             </div>
-          )}
+          ) : null}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Task Title *
-            </label>
+            <label className="mb-1 block text-sm font-medium">Title</label>
             <input
-              type="text"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Enter task title"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-              required
+              className="w-full rounded border px-3 py-2 text-sm"
+              value={form?.title ?? ""}
+              onChange={(e) => update("title", e.target.value)}
+              placeholder="Task title"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
+            <label className="mb-1 block text-sm font-medium">Description</label>
             <textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Add details about this task"
-              rows={2}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              placeholder="Add personal notes, reminders, or progress updates..."
+              className="w-full rounded border px-3 py-2 text-sm"
               rows={3}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+              value={form?.description ?? ""}
+              onChange={(e) => update("description", e.target.value)}
+              placeholder="Optional details"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
-              </label>
+              <label className="mb-1 block text-sm font-medium">Due date</label>
               <input
                 type="date"
-                value={formData.due_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, due_date: e.target.value })
-                }
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                className="w-full rounded border px-3 py-2 text-sm"
+                value={form?.due_date ?? ""}
+                onChange={(e) => update("due_date", e.target.value)}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Priority
-              </label>
+              <label className="mb-1 block text-sm font-medium">Priority</label>
               <select
-                value={formData.priority}
-                onChange={(e) =>
-                  setFormData({ ...formData, priority: e.target.value })
-                }
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none bg-white"
+                className="w-full rounded border px-3 py-2 text-sm"
+                value={form?.priority ?? "Medium"}
+                onChange={(e) => update("priority", e.target.value)}
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                <option>Low</option>
+                <option>Medium</option>
+                <option>High</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Status</label>
+              <select
+                className="w-full rounded border px-3 py-2 text-sm"
+                value={form?.status ?? "not_started"}
+                onChange={(e) => update("status", e.target.value)}
+              >
+                <option value="not_started">Not started</option>
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) =>
-                setFormData({ ...formData, status: e.target.value })
-              }
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none bg-white"
-            >
-              <option value="not_started">Not Started</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
+            <label className="mb-1 block text-sm font-medium">Notes</label>
+            <textarea
+              className="w-full rounded border px-3 py-2 text-sm"
+              rows={4}
+              value={form?.notes ?? ""}
+              onChange={(e) => update("notes", e.target.value)}
+              placeholder="Add notes, proof, what happened, etc."
+            />
           </div>
+        </div>
 
-          <div className="flex gap-3 pt-4">
+        <div className="flex items-center justify-between border-t px-4 py-3">
+          <button
+            className="rounded bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            onClick={() => onDelete(task)}
+            disabled={saving || deleting}
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+
+          <div className="flex gap-2">
             <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="px-4 py-2.5 border border-red-200 text-red-600 font-medium rounded-xl hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {deleting ? (
-                <Loader2 className="animate-spin" size={18} />
-              ) : (
-                <Trash2 size={18} />
-              )}
-              Delete
-            </button>
-            <button
-              type="button"
+              className="rounded px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              disabled={saving || deleting}
             >
               Cancel
             </button>
             <button
-              type="submit"
-              disabled={saving || !formData.title.trim()}
-              className="flex-1 px-4 py-2.5 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="rounded bg-black px-3 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-50"
+              onClick={handleSave}
+              disabled={saving || deleting}
             >
-              {saving && <Loader2 className="animate-spin" size={18} />}
-              Save
+              {saving ? "Saving..." : "Save"}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
