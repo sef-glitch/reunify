@@ -1,222 +1,142 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, AlertCircle, Settings } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import useHandleStreamResponse from "@/utils/useHandleStreamResponse";
+import React, { useEffect, useRef, useState } from "react";
+
+async function fetchJSON(url, opts = {}) {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    ...opts,
+  });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch {}
+  if (!res.ok) {
+    throw new Error(data?.error || text || `Request failed (${res.status})`);
+  }
+  return data;
+}
 
 export default function ChatPage() {
+  const [configured, setConfigured] = useState(false);
+  const [configLoading, setConfigLoading] = useState(true);
+
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Hi — I'm Reunify Guide. I can help you organize your case and plan next steps. I'm not a lawyer, and this isn't legal advice.",
+    },
+  ]);
+
   const [input, setInput] = useState("");
-  const [streamingMessage, setStreamingMessage] = useState("");
-  const [aiError, setAiError] = useState(null);
-  const messagesEndRef = useRef(null);
-  const queryClient = useQueryClient();
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
-  // Check if AI is configured
-  const { data: aiStatus } = useQuery({
-    queryKey: ["ai-status"],
-    queryFn: () => fetch("/api/chat/completions").then((res) => res.json()),
-    staleTime: 60000,
-  });
-
-  const aiConfigured = aiStatus?.configured ?? true;
-
-  const { data: history, isLoading } = useQuery({
-    queryKey: ["chat-history"],
-    queryFn: () => fetch("/api/chat/history").then((res) => res.json()),
-  });
-
-  const saveMessage = useMutation({
-    mutationFn: async ({ role, content }) => {
-      await fetch("/api/chat/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, content }),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chat-history"] });
-    },
-  });
-
-  const handleFinish = async (content) => {
-    await saveMessage.mutateAsync({ role: "assistant", content });
-    setStreamingMessage("");
-  };
-
-  const handleStreamResponse = useHandleStreamResponse({
-    onChunk: setStreamingMessage,
-    onFinish: handleFinish,
-  });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const userMsg = input.trim();
-    setInput("");
-
-    await saveMessage.mutateAsync({ role: "user", content: userMsg });
-
-    const contextMessages =
-      history && Array.isArray(history)
-        ? history.slice(-5).map((m) => ({ role: m.role, content: m.content }))
-        : [];
-
-    const systemPrompt = {
-      role: "system",
-      content: `You are "Reunify Guide", a supportive assistant for families navigating CPS and family court reunification cases.
-
-Important rules:
-1. You are NOT a lawyer and cannot provide legal advice. Always recommend consulting with an attorney for legal questions.
-2. Be warm, supportive, and practical in your responses.
-3. Focus on organization, planning, and emotional support.
-4. If asked for specific legal advice, clearly disclaim: "I'm not able to provide legal advice. Please consult with a family law attorney for guidance on legal matters."
-5. Help users understand general processes, organize their documentation, and prepare for meetings.`,
-    };
-
-    const messages = [
-      systemPrompt,
-      ...contextMessages,
-      { role: "user", content: userMsg },
-    ];
-
-    try {
-      setAiError(null);
-      const response = await fetch("/api/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: messages,
-          stream: true,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 503 || errorData.error === "AI_NOT_CONFIGURED") {
-          throw new Error("AI_NOT_CONFIGURED");
-        }
-        throw new Error(errorData.message || "AI request failed");
-      }
-
-      await handleStreamResponse(response);
-    } catch (error) {
-      console.error("Chat error:", error);
-      if (error.message === "AI_NOT_CONFIGURED") {
-        setAiError("AI assistant is not configured. Add OPENAI_API_KEY to your environment.");
-        queryClient.invalidateQueries({ queryKey: ["ai-status"] });
-      } else {
-        setAiError("Unable to get a response. Please try again.");
-      }
-    }
-  };
+  const bottomRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, streamingMessage]);
+    (async () => {
+      try {
+        const cfg = await fetchJSON("/api/chat/config");
+        setConfigured(Boolean(cfg.configured));
+      } catch {
+        setConfigured(false);
+      } finally {
+        setConfigLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, sending]);
+
+  async function send() {
+    const text = input.trim();
+    if (!text || sending) return;
+
+    setError("");
+    setSending(true);
+    setInput("");
+
+    setMessages((m) => [...m, { role: "user", content: text }]);
+
+    try {
+      const data = await fetchJSON("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: text, case_id: null }),
+      });
+      setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+    } catch (e) {
+      setError(e.message || "Chat failed");
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "Sorry — something went wrong. Please try again." },
+      ]);
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-        <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-          <Bot size={20} />
-        </div>
-        <div>
-          <h2 className="font-semibold text-gray-900">Reunify Guide</h2>
-          <p className="text-xs text-gray-500">
-            Informational support only • Not legal advice
-          </p>
+    <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
+      <div>
+        <div className="text-xl font-semibold">Reunify Guide</div>
+        <div className="text-sm text-gray-600">
+          Informational support only — not legal advice.
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {isLoading ? (
-          <div className="text-center text-gray-400 text-sm">
-            Loading chat...
-          </div>
-        ) : !aiConfigured ? (
-          <div className="text-center py-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
-              <Settings size={32} className="text-amber-600" />
+      {configLoading ? null : !configured ? (
+        <div className="rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-900">
+          AI is not configured. Add <code>OPENAI_API_KEY</code> to{" "}
+          <code>apps/web/.env.local</code> and restart the server.
+        </div>
+      ) : null}
+
+      <div className="flex-1 space-y-2 overflow-auto rounded border bg-white p-3">
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
+            <div
+              className={[
+                "inline-block max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm",
+                m.role === "user"
+                  ? "bg-black text-white"
+                  : "bg-gray-100 text-gray-900",
+              ].join(" ")}
+            >
+              {m.content}
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">AI Assistant Not Configured</h3>
-            <p className="text-gray-500 text-sm max-w-md mx-auto mb-4">
-              To enable the Reunify Guide, add your OpenAI API key to the environment configuration.
-            </p>
-            <code className="text-xs bg-gray-100 px-3 py-1.5 rounded text-gray-600">
-              OPENAI_API_KEY=sk-...
-            </code>
           </div>
-        ) : (!history || history.length === 0) && !streamingMessage ? (
-          <div className="text-center text-gray-400 text-sm py-10">
-            <Bot size={48} className="mx-auto mb-4 text-gray-200" />
-            <p>Ask me anything about your case, resources, or planning.</p>
-          </div>
-        ) : (
-          <>
-            {history?.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`
-                  max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed
-                  ${
-                    msg.role === "user"
-                      ? "bg-purple-600 text-white rounded-br-none"
-                      : "bg-gray-100 text-gray-800 rounded-bl-none"
-                  }
-                `}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            {streamingMessage && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed bg-gray-100 text-gray-800 rounded-bl-none">
-                  {streamingMessage}
-                </div>
-              </div>
-            )}
-            {aiError && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed bg-amber-50 border border-amber-200 text-amber-800 rounded-bl-none flex items-start gap-2">
-                  <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium">AI is not available</p>
-                    <p className="text-xs mt-1">{aiError}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </>
-        )}
+        ))}
+        {sending ? <div className="text-sm text-gray-500">Thinking…</div> : null}
+        <div ref={bottomRef} />
       </div>
 
-      <div className="p-4 border-t border-gray-100">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={aiConfigured ? "Type your question..." : "AI assistant not configured"}
-            disabled={!aiConfigured}
-            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <button
-            type="submit"
-            disabled={!aiConfigured || !input.trim() || !!streamingMessage}
-            className="p-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {streamingMessage ? (
-              <Loader2 className="animate-spin" size={20} />
-            ) : (
-              <Send size={20} />
-            )}
-          </button>
-        </form>
+      {error ? (
+        <div className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="flex gap-2">
+        <input
+          className="w-full rounded border px-3 py-2 text-sm"
+          placeholder="Ask a question…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") send();
+          }}
+          disabled={sending}
+        />
+        <button
+          className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          onClick={send}
+          disabled={sending || !input.trim()}
+        >
+          Send
+        </button>
       </div>
     </div>
   );

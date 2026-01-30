@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { env, isAIConfigured } from "@/utils/env";
+import { systemPrompt, shouldRefuse, refusalMessage } from "@/utils/aiPrompt";
 
 export async function POST(request) {
   const session = await auth();
@@ -23,6 +24,27 @@ export async function POST(request) {
       return Response.json({ error: "messages array is required" }, { status: 400 });
     }
 
+    // Check for harmful content in the latest user message
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUserMessage && shouldRefuse(lastUserMessage.content)) {
+      return Response.json({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: refusalMessage(),
+            },
+          },
+        ],
+      });
+    }
+
+    // Prepend system prompt
+    const messagesWithSystem = [
+      { role: "system", content: systemPrompt() },
+      ...messages,
+    ];
+
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -30,8 +52,8 @@ export async function POST(request) {
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages,
+        model: env.OPENAI_MODEL || "gpt-4o-mini",
+        messages: messagesWithSystem,
         stream,
       }),
     });
@@ -78,7 +100,10 @@ export async function POST(request) {
 
 // GET endpoint to check if AI is configured
 export async function GET() {
+  const configured = Boolean(env.OPENAI_API_KEY);
   return Response.json({
-    configured: isAIConfigured(),
+    configured,
+    provider: configured ? "openai" : "none",
+    model: env.OPENAI_MODEL || "gpt-4o-mini",
   });
 }

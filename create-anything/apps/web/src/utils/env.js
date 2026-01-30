@@ -11,6 +11,7 @@
 const SECRET_VARS = [
   'DATABASE_URL',
   'AUTH_SECRET',
+  'OPENAI_API_KEY',
 ];
 
 // Required environment variables for the web app
@@ -73,6 +74,16 @@ const OPTIONAL_VARS = [
       }
       return null;
     },
+  },
+  {
+    name: 'OPENAI_API_KEY',
+    description: 'OpenAI API key for AI chat assistant',
+    validate: null, // Optional, no validation needed
+  },
+  {
+    name: 'OPENAI_MODEL',
+    description: 'OpenAI model to use (default: gpt-4o-mini)',
+    validate: null, // Optional, no validation needed
   },
 ];
 
@@ -242,6 +253,7 @@ export const env = {
   S3_ENDPOINT: process.env.S3_ENDPOINT || "",
   S3_PUBLIC_BASE_URL: process.env.S3_PUBLIC_BASE_URL || "",
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+  OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-4o-mini",
 };
 
 /**
