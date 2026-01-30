@@ -1,103 +1,172 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
-import { CheckSquare } from "lucide-react";
-import { format } from "date-fns";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import TaskModal from "@/components/TaskModal";
+
+async function fetchJSON(url, opts = {}) {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    ...opts,
+  });
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    // ignore
+  }
+  if (!res.ok) {
+    const msg = data?.error || data?.message || text || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+function formatDue(d) {
+  if (!d) return "—";
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString();
+}
 
 export default function TasksPage() {
-  const [filter, setFilter] = useState("all");
-  const { data: tasks, isLoading } = useQuery({
-    queryKey: ["tasks"],
-    queryFn: async () => {
-      const res = await fetch("/api/tasks");
-      if (!res.ok) throw new Error("Failed to fetch tasks");
-      return res.json();
-    },
+  const qc = useQueryClient();
+
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [modalError, setModalError] = useState("");
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["tasks", "all"],
+    queryFn: async () => fetchJSON("/api/tasks"),
   });
 
-  const filteredTasks =
-    tasks && Array.isArray(tasks)
-      ? tasks.filter((task) => {
-          if (filter === "all") return true;
-          if (filter === "active") return task.status !== "completed";
-          if (filter === "due_soon") {
-            if (!task.due_date || task.status === "completed") return false;
-            const due = new Date(task.due_date);
-            const now = new Date();
-            const nextWeek = new Date();
-            nextWeek.setDate(now.getDate() + 7);
-            return due >= now && due <= nextWeek;
-          }
-          return true;
-        })
-      : [];
+  const tasks = Array.isArray(data) ? data : data?.tasks ?? [];
 
-  if (isLoading)
-    return (
-      <div className="p-8 text-center text-gray-500">Loading tasks...</div>
-    );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tasks
+      .filter((t) => {
+        if (statusFilter === "all") return true;
+        return String(t.status || "").toLowerCase() === statusFilter;
+      })
+      .filter((t) => {
+        if (!q) return true;
+        const hay = `${t.title ?? ""} ${t.description ?? ""} ${t.notes ?? ""}`.toLowerCase();
+        return hay.includes(q);
+      })
+      .sort((a, b) => {
+        const ad = a.due_date ?? a.due_at ?? null;
+        const bd = b.due_date ?? b.due_at ?? null;
+        if (!ad && !bd) return 0;
+        if (!ad) return 1;
+        if (!bd) return -1;
+        return new Date(ad).getTime() - new Date(bd).getTime();
+      });
+  }, [tasks, statusFilter, search]);
+
+  const saveTask = useMutation({
+    mutationFn: async (payload) => fetchJSON("/api/tasks", { method: "PUT", body: JSON.stringify(payload) }),
+    onSuccess: () => {
+      setModalError("");
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["tasks", "all"] });
+      // also refresh case detail if it uses case_id keyed tasks
+      if (selected?.case_id) qc.invalidateQueries({ queryKey: ["tasks", selected.case_id] });
+      setSelected(null);
+    },
+    onError: (e) => setModalError(e?.message || "Failed to save task"),
+  });
+
+  const deleteTask = useMutation({
+    mutationFn: async (task) => fetchJSON(`/api/tasks?id=${encodeURIComponent(task.id)}`, { method: "DELETE" }),
+    onSuccess: () => {
+      setModalError("");
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["tasks", "all"] });
+      if (selected?.case_id) qc.invalidateQueries({ queryKey: ["tasks", selected.case_id] });
+      setSelected(null);
+    },
+    onError: (e) => setModalError(e?.message || "Failed to delete task"),
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-serif font-medium text-gray-900">
-          All Tasks
-        </h1>
-        <div className="flex bg-white rounded-lg border border-gray-200 p-1">
-          {["all", "active", "due_soon"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium capitalize transition-colors ${filter === f ? "bg-purple-100 text-purple-700" : "text-gray-600 hover:bg-gray-50"}`}
-            >
-              {f.replace("_", " ")}
-            </button>
-          ))}
+    <div className="mx-auto max-w-5xl space-y-4 p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="text-xl font-semibold">Tasks</div>
+          <div className="text-sm text-gray-600">Click a task to open and edit it.</div>
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            className="w-full rounded border px-3 py-2 text-sm md:w-64"
+            placeholder="Search tasks…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            className="rounded border px-3 py-2 text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="not_started">Not started</option>
+            <option value="in_progress">In progress</option>
+            <option value="completed">Completed</option>
+          </select>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {filteredTasks?.map((task) => (
-          <div
-            key={task.id}
-            className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl"
-          >
-            <div
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer ${task.status === "completed" ? "bg-green-500 border-green-500 text-white" : "border-gray-300"}`}
+      {isLoading ? <div className="text-sm text-gray-600">Loading…</div> : null}
+      {error ? (
+        <div className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+          {error.message}
+        </div>
+      ) : null}
+
+      <div className="overflow-hidden rounded-lg border bg-white">
+        <div className="grid grid-cols-12 border-b bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700">
+          <div className="col-span-5">Task</div>
+          <div className="col-span-2">Status</div>
+          <div className="col-span-2">Priority</div>
+          <div className="col-span-3">Due</div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="p-4 text-sm text-gray-600">No tasks found.</div>
+        ) : (
+          filtered.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="grid w-full cursor-pointer grid-cols-12 items-center border-b px-3 py-3 text-left text-sm hover:bg-gray-50"
+              onClick={() => {
+                setModalError("");
+                setSelected(t);
+              }}
             >
-              {task.status === "completed" && <CheckSquare size={12} />}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded uppercase tracking-wider">
-                  {task.case_title}
-                </span>
-                {task.priority === "High" && (
-                  <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">
-                    High Priority
-                  </span>
-                )}
-              </div>
-              <h4
-                className={`font-medium ${task.status === "completed" ? "text-gray-400 line-through" : "text-gray-900"}`}
-              >
-                {task.title}
-              </h4>
-              {task.due_date && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Due {format(new Date(task.due_date), "MMM d, yyyy")}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-        {filteredTasks?.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <CheckSquare size={32} className="mx-auto mb-2 text-gray-300" />
-            <p>No tasks found.</p>
-          </div>
+              <div className="col-span-5 font-medium">{t.title ?? "(untitled)"}</div>
+              <div className="col-span-2 capitalize">{String(t.status || "").replaceAll("_", " ")}</div>
+              <div className="col-span-2">{t.priority ?? "—"}</div>
+              <div className="col-span-3">{formatDue(t.due_date ?? t.due_at)}</div>
+            </button>
+          ))
         )}
       </div>
+
+      <TaskModal
+        open={!!selected}
+        task={selected}
+        onClose={() => setSelected(null)}
+        onSave={(payload) => saveTask.mutate(payload)}
+        onDelete={(task) => deleteTask.mutate(task)}
+        saving={saveTask.isPending}
+        deleting={deleteTask.isPending}
+        error={modalError}
+      />
     </div>
   );
 }
