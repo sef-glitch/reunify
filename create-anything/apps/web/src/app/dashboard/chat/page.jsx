@@ -11,7 +11,8 @@ async function fetchJSON(url, opts = {}) {
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch {}
   if (!res.ok) {
-    throw new Error(data?.error || text || `Request failed (${res.status})`);
+    const errMsg = data?.error || data?.message || text || "Unknown error";
+    throw new Error(`${res.status}: ${errMsg}`);
   }
   return data;
 }
@@ -69,10 +70,6 @@ export default function ChatPage() {
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
     } catch (e) {
       setError(e.message || "Chat failed");
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: "Sorry — something went wrong. Please try again." },
-      ]);
     } finally {
       setSending(false);
     }
