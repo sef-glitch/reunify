@@ -25,12 +25,12 @@ export async function POST(request) {
   const chatId = await ensureChat({ userId, caseId });
 
   // Store user message
-  await addMessage({ chatId, userId, role: "user", content: userText });
+  await addMessage({ chatId, role: "user", content: userText });
 
   // Refusal
   if (shouldRefuse(userText)) {
     const reply = refusalMessage();
-    await addMessage({ chatId, userId, role: "assistant", content: reply });
+    await addMessage({ chatId, role: "assistant", content: reply });
     await audit({ userId, action: "chat_refused", entityType: "chat", entityId: chatId });
     return Response.json({ chat_id: chatId, reply });
   }
@@ -46,7 +46,7 @@ export async function POST(request) {
   try {
     const reply = await openaiChat({ messages });
 
-    await addMessage({ chatId, userId, role: "assistant", content: reply });
+    await addMessage({ chatId, role: "assistant", content: reply });
     await audit({ userId, action: "chat_completed", entityType: "chat", entityId: chatId });
 
     return Response.json({ chat_id: chatId, reply });

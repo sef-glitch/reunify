@@ -18,10 +18,10 @@ export async function ensureChat({ userId, caseId = null }) {
   return created[0].id;
 }
 
-export async function addMessage({ chatId, userId, role, content, metadata = null }) {
+export async function addMessage({ chatId, role, content }) {
   await sql`
-    INSERT INTO chat_messages (chat_id, user_id, role, content, metadata, created_at)
-    VALUES (${chatId}, ${userId}, ${role}, ${content}, ${metadata}, NOW())
+    INSERT INTO chat_messages (chat_id, role, content, created_at)
+    VALUES (${chatId}, ${role}, ${content}, NOW())
   `;
 }
 
@@ -36,9 +36,9 @@ export async function getRecentMessages({ chatId, limit = 12 }) {
   return rows.reverse(); // oldest -> newest
 }
 
-export async function audit({ userId, action, entityType, entityId, metadata = null }) {
+export async function audit({ userId, action, entityType, entityId }) {
   await sql`
-    INSERT INTO audit_log (user_id, action, entity_type, entity_id, metadata, created_at)
-    VALUES (${userId}, ${action}, ${entityType}, ${entityId}, ${metadata}, NOW())
+    INSERT INTO audit_log (user_id, action, entity_type, entity_id, created_at)
+    VALUES (${userId}, ${action}, ${entityType}, ${entityId}, NOW())
   `;
 }
