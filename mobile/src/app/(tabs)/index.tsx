@@ -2,9 +2,8 @@ import React, { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Calendar, CheckCircle2, Plus, FileText, Upload, ChevronRight, AlertCircle, Clock, Sparkles, TrendingUp, Zap, Crown } from 'lucide-react-native';
+import { Calendar, CheckCircle2, Plus, FileText, Upload, ChevronRight, AlertCircle, Clock, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
 import { useAuth, Task } from '@/lib/auth-context';
-import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 import { useSubscription } from '@/lib/useSubscription';
 
 export default function DashboardScreen() {
@@ -13,16 +12,12 @@ export default function DashboardScreen() {
   const { isPremium, requirePremium } = useSubscription();
 
   const handleAIFeature = (route: '/ai-assistant' | '/case-analysis' | '/task-suggestions') => {
-    // AI Assistant hub is free (Explain a Term is free inside)
     if (route === '/ai-assistant') {
       router.push(route);
       return;
     }
-    // Case Analysis and Task Suggestions require premium - use requirePremium() properly
-    // requirePremium() returns true if premium, or navigates to paywall and returns false
-    // Only navigate to the route if it returns true
     if (route !== '/ai-assistant' && !requirePremium()) {
-      return; // User is not premium and paywall was shown - don't navigate
+      return;
     }
     router.push(route);
   };
@@ -60,8 +55,7 @@ export default function DashboardScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
+      month: 'long',
       day: 'numeric',
       year: 'numeric',
     });
@@ -79,307 +73,222 @@ export default function DashboardScreen() {
     return `${diff} days`;
   };
 
-  const getPriorityColor = (priority: Task['priority']) => {
+  const getPriorityStyle = (priority: Task['priority']) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800';
-      case 'high': return 'bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800';
-      case 'medium': return 'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800';
-      default: return 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700';
+      case 'urgent': return { bg: 'bg-red-50', border: 'border-red-100', dot: '#ef4444', text: 'text-red-600' };
+      case 'high': return { bg: 'bg-amber-50', border: 'border-amber-100', dot: '#f59e0b', text: 'text-amber-700' };
+      case 'medium': return { bg: 'bg-sky-50', border: 'border-sky-100', dot: '#0ea5e9', text: 'text-sky-700' };
+      default: return { bg: 'bg-stone-50', border: 'border-stone-100', dot: '#a8a29e', text: 'text-stone-500' };
     }
   };
 
-  const getPriorityTextColor = (priority: Task['priority']) => {
-    switch (priority) {
-      case 'urgent': return 'text-red-700 dark:text-red-400';
-      case 'high': return 'text-orange-700 dark:text-orange-400';
-      case 'medium': return 'text-blue-700 dark:text-blue-400';
-      default: return 'text-slate-600 dark:text-slate-400';
-    }
-  };
+  const openTasks = tasks.filter((t) => t.status !== 'completed').length;
 
   return (
-    <View className="flex-1 bg-stone-50 dark:bg-stone-950">
-      <SafeAreaView edges={['top']} className="bg-stone-50 dark:bg-stone-950">
-        <View className="px-5 pt-4 pb-3">
-          <Text className="text-2xl font-semibold text-stone-800 dark:text-stone-100">
+    <View className="flex-1 bg-stone-50">
+      <SafeAreaView edges={['top']} className="bg-stone-50">
+        {/* Header */}
+        <View className="px-6 pt-5 pb-4">
+          <Text className="text-3xl font-bold text-stone-800">
             Reunify
           </Text>
-          <Text className="text-stone-500 dark:text-stone-400 text-sm mt-0.5">
-            Your case organizer
+          <Text className="text-stone-400 text-base mt-0.5">
+            Your case at a glance
           </Text>
         </View>
-      </SafeAreaView>
 
-      <DisclaimerBanner />
-
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* AI Assistant Card */}
-        <View className="mx-4 mt-4">
-          <Pressable
-            onPress={() => handleAIFeature('/ai-assistant')}
-            className="bg-gradient-to-r from-teal-500 to-emerald-500 rounded-2xl p-5 active:opacity-90"
-            style={{
-              backgroundColor: '#0d9488',
-            }}
-          >
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center">
-                <Sparkles size={24} color="#fff" />
-              </View>
-              <View className="flex-1 ml-4">
-                <View className="flex-row items-center">
-                  <Text className="text-white font-semibold text-lg">AI Assistant</Text>
-                  {!isPremium && (
-                    <View className="ml-2 bg-white/20 px-2 py-0.5 rounded-full">
-                      <Text className="text-white text-xs font-medium">FREE</Text>
-                    </View>
-                  )}
-                </View>
-                <Text className="text-white/80 text-sm mt-0.5">
-                  Explain terms free, plus pro AI tools
-                </Text>
-              </View>
-              <ChevronRight size={24} color="#fff" />
-            </View>
-          </Pressable>
-        </View>
-
-        {/* AI Feature Cards */}
-        <View className="mx-4 mt-3 flex-row">
-          <Pressable
-            onPress={() => handleAIFeature('/case-analysis')}
-            className="flex-1 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 mr-2 border border-amber-200/60 dark:border-amber-800/40 active:opacity-80"
-          >
-            <View className="flex-row items-center justify-between mb-2.5">
-              <View className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/40 items-center justify-center">
-                <TrendingUp size={18} color="#d97706" />
-              </View>
-              {!isPremium && (
-                <View className="bg-amber-200/60 dark:bg-amber-800/40 px-1.5 py-0.5 rounded">
-                  <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-semibold">PRO</Text>
-                </View>
-              )}
-            </View>
-            <Text className="text-stone-800 dark:text-stone-100 font-semibold text-sm">
-              Case Analysis
-            </Text>
-            <Text className="text-stone-500 dark:text-stone-400 text-xs mt-0.5">
-              AI assessment
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => handleAIFeature('/task-suggestions')}
-            className="flex-1 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl p-4 ml-2 border border-cyan-200/60 dark:border-cyan-800/40 active:opacity-80"
-          >
-            <View className="flex-row items-center justify-between mb-2.5">
-              <View className="w-9 h-9 rounded-full bg-cyan-100 dark:bg-cyan-900/40 items-center justify-center">
-                <Zap size={18} color="#0891b2" />
-              </View>
-              {!isPremium && (
-                <View className="bg-cyan-200/60 dark:bg-cyan-800/40 px-1.5 py-0.5 rounded">
-                  <Text className="text-cyan-700 dark:text-cyan-400 text-[10px] font-semibold">PRO</Text>
-                </View>
-              )}
-            </View>
-            <Text className="text-stone-800 dark:text-stone-100 font-semibold text-sm">
-              Task Suggestions
-            </Text>
-            <Text className="text-stone-500 dark:text-stone-400 text-xs mt-0.5">
-              AI recommendations
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Next Court Date Card */}
-        <View className="mx-4 mt-4">
-          <View className="bg-white dark:bg-stone-900 rounded-2xl p-5 border border-stone-200/60 dark:border-stone-800">
-            <View className="flex-row items-center mb-3">
-              <View className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900/40 items-center justify-center">
-                <Calendar size={20} color="#0d9488" />
-              </View>
-              <Text className="text-stone-500 dark:text-stone-400 text-sm ml-3 font-medium">
-                NEXT COURT DATE
-              </Text>
-            </View>
-
-            {nextCourtDate ? (
-              <View>
-                <Text className="text-xl font-semibold text-stone-800 dark:text-stone-100">
-                  {formatDate(nextCourtDate.date.toISOString())}
-                </Text>
-                <View className="flex-row items-center mt-2">
-                  <View className="bg-teal-100 dark:bg-teal-900/40 px-2.5 py-1 rounded-full">
-                    <Text className="text-teal-700 dark:text-teal-400 text-xs font-medium">
-                      {getDaysUntil(nextCourtDate.date.toISOString())}
-                    </Text>
-                  </View>
-                  <Text className="text-stone-500 dark:text-stone-400 text-sm ml-2">
-                    {nextCourtDate.caseName}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View>
-                <Text className="text-stone-400 dark:text-stone-500 text-base">
-                  No upcoming court dates
-                </Text>
-                <Text className="text-stone-400 dark:text-stone-600 text-sm mt-1">
-                  Add a case with a hearing date to see it here
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Urgent Tasks */}
-        <View className="mx-4 mt-5">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-stone-600 dark:text-stone-300 text-sm font-semibold uppercase tracking-wide">
-              Priority Tasks
-            </Text>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
+          {/* Court Date Hero Card */}
+          <View className="px-5 mt-1">
             <Pressable
-              onPress={() => router.push('/(tabs)/tasks')}
-              className="flex-row items-center active:opacity-60"
+              onPress={() => router.push('/(tabs)/cases')}
+              className="bg-white rounded-3xl p-5 shadow-sm border border-stone-100 active:opacity-90"
             >
-              <Text className="text-teal-600 dark:text-teal-400 text-sm">View All</Text>
-              <ChevronRight size={16} color="#0d9488" />
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center">
+                  <View className="w-10 h-10 rounded-2xl bg-teal-50 items-center justify-center mr-3">
+                    <Calendar size={20} color="#0d9488" strokeWidth={1.8} />
+                  </View>
+                  <Text className="text-stone-400 text-xs font-medium uppercase tracking-widest">Next Hearing</Text>
+                </View>
+                {nextCourtDate && (
+                  <View className="bg-teal-50 px-3 py-1 rounded-full">
+                    <Text className="text-teal-600 text-xs font-semibold">{getDaysUntil(nextCourtDate.date.toISOString())}</Text>
+                  </View>
+                )}
+              </View>
+              {nextCourtDate ? (
+                <View>
+                  <Text className="text-xl font-semibold text-stone-800">{formatDate(nextCourtDate.date.toISOString())}</Text>
+                  <Text className="text-stone-400 text-sm mt-1">{nextCourtDate.caseName}</Text>
+                </View>
+              ) : (
+                <View className="flex-row items-center">
+                  <Text className="text-stone-400 text-sm flex-1">No upcoming hearings</Text>
+                  <ChevronRight size={16} color="#d6d3d1" />
+                </View>
+              )}
             </Pressable>
           </View>
 
-          {urgentTasks.length > 0 ? (
-            <View className="space-y-2">
-              {urgentTasks.map((task) => (
-                <Pressable
-                  key={task.id}
-                  onPress={() => router.push('/(tabs)/tasks')}
-                  className={`p-4 rounded-xl border ${getPriorityColor(task.priority)} active:opacity-80`}
-                >
-                  <View className="flex-row items-start">
-                    <View className="mt-0.5">
-                      {task.priority === 'urgent' ? (
-                        <AlertCircle size={18} color="#dc2626" />
-                      ) : (
-                        <CheckCircle2 size={18} color="#6b7280" />
+          {/* AI Card */}
+          <View className="px-5 mt-4">
+            <Pressable
+              onPress={() => handleAIFeature('/ai-assistant')}
+              className="rounded-3xl overflow-hidden active:opacity-95"
+              style={{ shadowColor: '#0d9488', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 3 }}
+            >
+              <View className="bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-500 p-5">
+                <View className="flex-row items-center justify-between mb-4">
+                  <View className="flex-row items-center">
+                    <View className="w-12 h-12 rounded-2xl bg-white/20 items-center justify-center">
+                      <Sparkles size={22} color="#fff" />
+                    </View>
+                    <View className="ml-3">
+                      <Text className="text-white font-bold text-lg">AI Assistant</Text>
+                      {!isPremium && (
+                        <View className="bg-white/20 rounded-full px-2 py-0.5 mt-1 self-start">
+                          <Text className="text-white/80 text-xs font-medium">Free to try</Text>
+                        </View>
                       )}
                     </View>
-                    <View className="flex-1 ml-3">
-                      <Text className="text-stone-800 dark:text-stone-100 font-medium">
-                        {task.title}
-                      </Text>
-                      <View className="flex-row items-center mt-1.5">
-                        <Text className={`text-xs font-medium uppercase ${getPriorityTextColor(task.priority)}`}>
-                          {task.priority}
-                        </Text>
-                        {task.dueDate && (
-                          <View className="flex-row items-center ml-3">
-                            <Clock size={12} color="#9ca3af" />
-                            <Text className="text-stone-500 dark:text-stone-400 text-xs ml-1">
-                              {getDaysUntil(task.dueDate)}
-                            </Text>
-                          </View>
-                        )}
-                        <Text className="text-stone-400 dark:text-stone-500 text-xs ml-3">
-                          {getCaseName(task.caseId)}
-                        </Text>
-                      </View>
-                    </View>
                   </View>
+                  <View className="w-8 h-8 rounded-full bg-white/20 items-center justify-center">
+                    <ChevronRight size={18} color="#fff" />
+                  </View>
+                </View>
+                <Text className="text-teal-50 text-sm leading-5">
+                  {isPremium
+                    ? 'All AI tools unlocked'
+                    : 'Explain legal terms free · Try pro features'}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Priority Tasks */}
+          {urgentTasks.length > 0 && (
+            <View className="mt-6 px-5">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-stone-700 text-base font-semibold">Priority Tasks</Text>
+                <Pressable onPress={() => router.push('/(tabs)/tasks')}>
+                  <Text className="text-teal-600 text-sm font-medium">See all</Text>
                 </Pressable>
-              ))}
-            </View>
-          ) : (
-            <View className="bg-white dark:bg-stone-900 rounded-xl p-5 border border-stone-200/60 dark:border-stone-800 items-center">
-              <CheckCircle2 size={32} color="#9ca3af" />
-              <Text className="text-stone-400 dark:text-stone-500 text-sm mt-2 text-center">
-                No pending tasks
-              </Text>
-              <Text className="text-stone-400 dark:text-stone-600 text-xs mt-1 text-center">
-                Create a task to stay organized
-              </Text>
+              </View>
+              <View className="bg-white rounded-2xl overflow-hidden border border-stone-100 shadow-sm">
+                {urgentTasks.map((task, index) => {
+                  const style = getPriorityStyle(task.priority);
+                  return (
+                    <Pressable
+                      key={task.id}
+                      onPress={() => router.push('/(tabs)/tasks')}
+                      className={`p-4 flex-row items-center ${index < urgentTasks.length - 1 ? 'border-b border-stone-50' : ''} active:bg-stone-50`}
+                    >
+                      <View className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: style.dot }} />
+                      <View className="flex-1">
+                        <Text className="text-stone-800 font-medium text-sm">{task.title}</Text>
+                        <View className="flex-row items-center mt-1">
+                          <Text className={`text-xs font-medium uppercase ${style.text}`}>{task.priority}</Text>
+                          {task.dueDate && (
+                            <>
+                              <Text className="text-stone-300 mx-2">·</Text>
+                              <Clock size={11} color="#a8a29e" />
+                              <Text className="text-stone-400 text-xs ml-1">{getDaysUntil(task.dueDate)}</Text>
+                            </>
+                          )}
+                        </View>
+                      </View>
+                      <ChevronRight size={16} color="#d6d3d1" />
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           )}
-        </View>
 
-        {/* Quick Actions */}
-        <View className="mx-4 mt-5">
-          <Text className="text-stone-600 dark:text-stone-300 text-sm font-semibold uppercase tracking-wide mb-3">
-            Quick Actions
-          </Text>
-
-          <View className="flex-row space-x-3">
-            <Pressable
-              onPress={() => router.push('/(tabs)/tasks')}
-              className="flex-1 bg-white dark:bg-stone-900 rounded-xl p-4 border border-stone-200/60 dark:border-stone-800 active:opacity-80"
-            >
-              <View className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 items-center justify-center mb-3">
-                <Plus size={20} color="#2563eb" />
+          {urgentTasks.length === 0 && (
+            <View className="mx-5 mt-6 bg-white rounded-2xl p-5 border border-stone-100 shadow-sm items-center">
+              <View className="w-12 h-12 rounded-full bg-stone-50 items-center justify-center mb-3">
+                <CheckCircle2 size={24} color="#d6d3d1" strokeWidth={1.5} />
               </View>
-              <Text className="text-stone-700 dark:text-stone-200 font-medium text-sm">
-                Create Task
-              </Text>
-            </Pressable>
+              <Text className="text-stone-600 font-medium">All caught up</Text>
+              <Text className="text-stone-400 text-sm text-center mt-1">No pending tasks right now</Text>
+            </View>
+          )}
 
-            <Pressable
-              onPress={() => router.push('/(tabs)/documents')}
-              className="flex-1 bg-white dark:bg-stone-900 rounded-xl p-4 border border-stone-200/60 dark:border-stone-800 active:opacity-80"
-            >
-              <View className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/40 items-center justify-center mb-3">
-                <FileText size={20} color="#7c3aed" />
-              </View>
-              <Text className="text-stone-700 dark:text-stone-200 font-medium text-sm">
-                Generate Doc
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push('/(tabs)/evidence')}
-              className="flex-1 bg-white dark:bg-stone-900 rounded-xl p-4 border border-stone-200/60 dark:border-stone-800 active:opacity-80"
-            >
-              <View className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 items-center justify-center mb-3">
-                <Upload size={20} color="#059669" />
-              </View>
-              <Text className="text-stone-700 dark:text-stone-200 font-medium text-sm">
-                Add Evidence
-              </Text>
-            </Pressable>
+          {/* Quick Actions */}
+          <View className="mt-6 px-5">
+            <Text className="text-stone-700 text-base font-semibold mb-3">Quick Actions</Text>
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={() => router.push('/(tabs)/tasks')}
+                className="flex-1 bg-white rounded-2xl p-4 border border-stone-100 shadow-sm active:bg-stone-50"
+              >
+                <View className="w-10 h-10 rounded-xl bg-sky-50 items-center justify-center mb-3">
+                  <Plus size={20} color="#0ea5e9" strokeWidth={1.8} />
+                </View>
+                <Text className="text-stone-700 font-semibold text-sm">New Task</Text>
+                <Text className="text-stone-400 text-xs mt-1">Add to your checklist</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/(tabs)/documents')}
+                className="flex-1 bg-white rounded-2xl p-4 border border-stone-100 shadow-sm active:bg-stone-50"
+              >
+                <View className="w-10 h-10 rounded-xl bg-violet-50 items-center justify-center mb-3">
+                  <FileText size={20} color="#7c3aed" strokeWidth={1.8} />
+                </View>
+                <Text className="text-stone-700 font-semibold text-sm">Documents</Text>
+                <Text className="text-stone-400 text-xs mt-1">Create or browse</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/(tabs)/evidence')}
+                className="flex-1 bg-white rounded-2xl p-4 border border-stone-100 shadow-sm active:bg-stone-50"
+              >
+                <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center mb-3">
+                  <Upload size={20} color="#059669" strokeWidth={1.8} />
+                </View>
+                <Text className="text-stone-700 font-semibold text-sm">Evidence</Text>
+                <Text className="text-stone-400 text-xs mt-1">Upload files</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
 
-        {/* Stats Overview */}
-        <View className="mx-4 mt-5 mb-4">
-          <View className="bg-white dark:bg-stone-900 rounded-2xl p-5 border border-stone-200/60 dark:border-stone-800">
-            <Text className="text-stone-600 dark:text-stone-300 text-sm font-semibold uppercase tracking-wide mb-4">
-              Overview
-            </Text>
-            <View className="flex-row">
-              <View className="flex-1 items-center">
-                <Text className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                  {cases.length}
-                </Text>
-                <Text className="text-stone-500 dark:text-stone-400 text-xs mt-1">Cases</Text>
-              </View>
-              <View className="flex-1 items-center">
-                <Text className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {tasks.filter((t) => t.status !== 'completed').length}
-                </Text>
-                <Text className="text-stone-500 dark:text-stone-400 text-xs mt-1">Open Tasks</Text>
-              </View>
-              <View className="flex-1 items-center">
-                <Text className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {documents.length}
-                </Text>
-                <Text className="text-stone-500 dark:text-stone-400 text-xs mt-1">Documents</Text>
-              </View>
-              <View className="flex-1 items-center">
-                <Text className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {evidence.length}
-                </Text>
-                <Text className="text-stone-500 dark:text-stone-400 text-xs mt-1">Evidence</Text>
+          {/* Overview Stats */}
+          <View className="mx-5 mt-6 mb-4">
+            <View className="bg-gradient-to-br from-stone-800 to-stone-900 rounded-3xl p-5 shadow-lg">
+              <Text className="text-stone-400 text-xs font-medium uppercase tracking-widest mb-4">Your Progress</Text>
+              <View className="flex-row justify-between">
+                <View className="items-center flex-1">
+                  <Text className="text-3xl font-bold text-white">{cases.length}</Text>
+                  <Text className="text-stone-400 text-xs mt-1">Cases</Text>
+                </View>
+                <View className="w-px bg-stone-700" />
+                <View className="items-center flex-1">
+                  <Text className="text-3xl font-bold text-white">{openTasks}</Text>
+                  <Text className="text-stone-400 text-xs mt-1">Open Tasks</Text>
+                </View>
+                <View className="w-px bg-stone-700" />
+                <View className="items-center flex-1">
+                  <Text className="text-3xl font-bold text-white">{documents.length}</Text>
+                  <Text className="text-stone-400 text-xs mt-1">Docs</Text>
+                </View>
+                <View className="w-px bg-stone-700" />
+                <View className="items-center flex-1">
+                  <Text className="text-3xl font-bold text-white">{evidence.length}</Text>
+                  <Text className="text-stone-400 text-xs mt-1">Evidence</Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
+
+          {/* Disclaimer footer */}
+          <View className="mx-5 mb-8 items-center">
+            <Text className="text-stone-300 text-xs text-center">
+              Reunify provides organizational support only — not legal advice.
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
