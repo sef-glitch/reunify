@@ -115,12 +115,12 @@ export function SyncIndicator({ onPress, compact = false }: SyncIndicatorProps) 
       }}
       accessibilityLabel={
         !isOnline
-          ? 'You are offline. Evidence will be saved when you reconnect.'
+          ? 'Offline — evidence will be saved locally'
           : failedCount > 0
-            ? `${failedCount} uploads failed. Tap to retry.`
+            ? `${failedCount} uploads failed`
             : totalQueued > 0
-              ? `${totalQueued} items waiting to sync`
-              : 'All evidence synced'
+              ? `${totalQueued} items waiting to upload`
+              : 'All evidence saved locally'
       }
       accessibilityRole="button"
     >
@@ -167,8 +167,8 @@ export function SyncIndicator({ onPress, compact = false }: SyncIndicatorProps) 
               : failedCount > 0
                 ? 'Tap to retry'
                 : totalQueued > 0
-                  ? 'Will sync when ready'
-                  : 'Evidence backed up'}
+                  ? 'Will upload when connected'
+                  : 'Evidence stored on device'}
           </Text>
         </View>
       </View>

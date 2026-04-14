@@ -27,6 +27,7 @@ import Animated, {
   FadeInUp,
   SlideInRight,
 } from 'react-native-reanimated';
+import { useSubscription } from '@/lib/useSubscription';
 
 export default function CaseAnalysisScreen() {
   const router = useRouter();
@@ -90,7 +91,7 @@ export default function CaseAnalysisScreen() {
   const renderForm = () => (
     <View className="px-5 pt-6">
       <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-        <View className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-800/40 rounded-2xl p-4 mb-6">
+        <View className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-800 rounded-2xl p-4 mb-6">
           <View className="flex-row items-center mb-1.5">
             <TrendingUp size={18} color="#d97706" />
             <Text className="text-amber-800 dark:text-amber-300 font-semibold text-sm ml-2">
@@ -419,7 +420,7 @@ export default function CaseAnalysisScreen() {
             AI Not Available
           </Text>
           <Text className="text-stone-400 dark:text-stone-500 text-sm text-center mt-2">
-            Please check the API tab in Vibecode to configure your OpenAI API key.
+            Please check your API settings to configure your OpenAI API key.
           </Text>
         </View>
       ) : (

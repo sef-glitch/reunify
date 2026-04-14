@@ -886,7 +886,7 @@ export default function AIAssistantScreen() {
             AI Not Available
           </Text>
           <Text className="text-stone-400 dark:text-stone-500 text-sm text-center mt-2">
-            Please check the API tab in Vibecode to configure your OpenAI API key.
+            Please check your API settings to configure your AI API key.
           </Text>
         </View>
       ) : (

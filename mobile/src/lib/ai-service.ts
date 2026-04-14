@@ -1,10 +1,6 @@
 /**
  * AI Service for Reunify
- * Provides AI-powered assistance for case planning, document drafting,
- * legal term explanations, case analysis, and task suggestions.
- *
- * IMPORTANT: All responses include "not legal advice" disclaimers.
- * This is informational guidance only - users should verify with official sources or counsel.
+ * Provides AI-powered assistance via Anthropic's Claude API.
  */
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_VIBECODE_BACKEND_URL || 'http://localhost:3000';

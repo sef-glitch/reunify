@@ -14,6 +14,10 @@ const allowed = [
   /^http:\/\/127\.0\.0\.1(:\d+)?$/,
   /^https:\/\/[a-z0-9-]+\.dev\.vibecode\.run$/,
   /^https:\/\/[a-z0-9-]+\.vibecode\.run$/,
+  /^https:\/\/[a-z0-9-]+\.vibecode\.app$/,
+  /^https:\/\/[a-z0-9-]+\.vibecode\.io$/,
+  /^https:\/\/[\w-]+\.vercel\.app$/,
+  /^https:\/\/[\w-]+\.onrender\.com$/,
 ];
 
 app.use(

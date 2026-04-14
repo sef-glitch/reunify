@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as Print from 'expo-print';
 import { Task, Case, Document, Evidence } from './auth-context';
 
 // ==================== CSV EXPORT ====================
@@ -189,19 +190,22 @@ export async function generateCourtPacket(
 </html>
     `;
 
-    // Write HTML to file (can be converted to PDF via expo-print in a real implementation)
-    const filename = `court_packet_${options.caseName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.html`;
+    // Generate PDF using expo-print
+    const pdf = await Print.printToBase64Async({ html: htmlContent, base64: true });
+
+    // Write PDF to file
+    const filename = `court_packet_${options.caseName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     const fileUri = `${FileSystem.documentDirectory}${filename}`;
-    await FileSystem.writeAsStringAsync(fileUri, htmlContent, {
-      encoding: FileSystem.EncodingType.UTF8,
+    await FileSystem.writeAsStringAsync(fileUri, pdf, {
+      encoding: FileSystem.EncodingType.Base64,
     });
 
     // Share the file
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(fileUri, {
-        mimeType: 'text/html',
+        mimeType: 'application/pdf',
         dialogTitle: 'Export Court Packet',
-        UTI: 'public.html',
+        UTI: 'com.adobe.pdf',
       });
     }
 
