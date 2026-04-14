@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, X, CheckCircle2, Circle, Clock, Filter, ChevronDown, Download } from 'lucide-react-native';
-import { useAuth, Task, Case } from '@/lib/auth-context';
-import { DisclaimerBanner } from '@/components/DisclaimerBanner';
+import { Plus, X, CheckCircle2, Circle, Clock, Download } from 'lucide-react-native';
+import { useAuth, Task } from '@/lib/auth-context';
 import { exportTasksToCSV } from '@/lib/export-helpers';
 
 const PRIORITIES = [
@@ -197,8 +196,6 @@ export default function TasksScreen() {
           </View>
         </View>
       </SafeAreaView>
-
-      <DisclaimerBanner />
 
       {/* Filter Bar */}
       <View className="px-4 py-3 border-b border-stone-200/60 dark:border-stone-800">

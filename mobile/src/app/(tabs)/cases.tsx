@@ -3,7 +3,6 @@ import { View, Text, ScrollView, Pressable, TextInput, Modal, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, ChevronRight, Briefcase, X, Calendar, MapPin, Target } from 'lucide-react-native';
 import { useAuth, Case } from '@/lib/auth-context';
-import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 
 const CASE_TYPES = [
   { value: 'custody', label: 'Custody' },
@@ -154,8 +153,6 @@ export default function CasesScreen() {
           </Pressable>
         </View>
       </SafeAreaView>
-
-      <DisclaimerBanner />
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
         {cases.length === 0 ? (

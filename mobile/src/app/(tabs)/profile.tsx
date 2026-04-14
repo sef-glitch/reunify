@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Mail, Phone, FileText, Save, Heart, LogOut, Package, Check, X, HelpCircle, ChevronRight, Crown, Lock } from 'lucide-react-native';
+import { User, Mail, Phone, FileText, Save, Heart, LogOut, Package, Check, X, HelpCircle, Crown, Lock } from 'lucide-react-native';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'expo-router';
-import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 import { generateCourtPacket } from '@/lib/export-helpers';
 import { useSubscription } from '@/lib/useSubscription';
 import * as Haptics from 'expo-haptics';
@@ -120,8 +119,6 @@ export default function ProfileScreen() {
           )}
         </View>
       </SafeAreaView>
-
-      <DisclaimerBanner />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -265,7 +262,6 @@ export default function ProfileScreen() {
                       Unlock AI tools & court packet export
                     </Text>
                   </View>
-                  <ChevronRight size={20} color="#9ca3af" />
                 </Pressable>
               )}
             </View>
@@ -323,7 +319,6 @@ export default function ProfileScreen() {
                     Subscriptions, privacy, exports & more
                   </Text>
                 </View>
-                <ChevronRight size={20} color="#9ca3af" />
               </Pressable>
             </View>
 
